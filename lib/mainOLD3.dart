@@ -131,11 +131,26 @@ class _TelaLoginState extends State<TelaLogin> {
       body: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [const Color(0xFF8A2BE2), Colors.purple[800]!], begin: Alignment.topCenter, end: Alignment.bottomCenter)), child: SafeArea(child: Padding(padding: const EdgeInsets.all(20), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         const Icon(Icons.how_to_vote, size: 80, color: Colors.white),
         const SizedBox(height: 20),
-        const Text('Sistema de Pesquisa Eleitoral', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text('Sistema de Pesquisa Eleitoral', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.black)),
         const SizedBox(height: 30),
         const Disclaimer(),
         const SizedBox(height: 20),
-        ElevatedButton.icon(onPressed: () => _mostrarTutorial(context), icon: const Icon(Icons.help, color: Colors.white), label: const Text('Tutorial', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1))),
+        ElevatedButton.icon(
+          onPressed: () => _mostrarTutorial(context),
+          icon: const Icon(Icons.help, color: Colors.white),
+          label: const Text(
+            'Tutorial',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue[900],
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+          ),
+        ),
         const SizedBox(height: 20),
         Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(children: [
           const Text('Selecione o tipo de acesso:', style: TextStyle(fontSize: 16)),

@@ -27,19 +27,47 @@ class MyApp extends StatelessWidget {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => const Tela1Cadastro())),
-                    child: const Text('Cadastro', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Cadastro',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
                   TextButton(
                     onPressed: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => const TelaResultados(estado: null, cidade: ''))),
-                    child: const Text('Resultados', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Resultados',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
                   TextButton(
                     onPressed: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => const TelaQGPLogin())),
-                    child: const Text('QGP', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'QGP',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
                   TextButton(
                     onPressed: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => const TelaAdmin())),
-                    child: const Text('Gestão', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Gestão',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -75,7 +103,14 @@ class _TelaLoginState extends State<TelaLogin> {
               children: [
                 const Icon(Icons.how_to_vote, size: 80),
                 const SizedBox(height: 20),
-                const Text('Sistema de Pesquisa Eleitoral', style: TextStyle(fontSize: 22)),
+                const Text(
+                  'Sistema de Pesquisa Eleitoral',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
+                  ),
+                ),
                 const SizedBox(height: 20),
 
                 SegmentedButton<String>(
