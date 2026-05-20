@@ -1,0 +1,142 @@
+[
+    {
+        "idEleitor": "COLETADO_5324_0",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.942805",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Cohab"
+    },
+    {
+        "idEleitor": "COLETADO_5324_1",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.942884",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Industrial"
+    },
+    {
+        "idEleitor": "COLETADO_5324_2",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.942948",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Bairro Alto"
+    },
+    {
+        "idEleitor": "COLETADO_5324_3",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.942977",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Bairro Alto"
+    },
+    {
+        "idEleitor": "COLETADO_5324_4",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.943009",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Bairro Alto"
+    },
+    {
+        "idEleitor": "COLETADO_5324_5",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.943034",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Centro"
+    },
+    {
+        "idEleitor": "COLETADO_5324_6",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.943061",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Centro"
+    },
+    {
+        "idEleitor": "COLETADO_5324_7",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.943087",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Cohab"
+    },
+    {
+        "idEleitor": "COLETADO_5324_8",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.943110",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Bairro Alto"
+    },
+    {
+        "idEleitor": "COLETADO_5324_9",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.943134",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Industrial"
+    },
+    {
+        "idEleitor": "COLETADO_5324_10",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.943159",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Centro"
+    },
+    {
+        "idEleitor": "COLETADO_5324_11",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.943185",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Vila Nova"
+    },
+    {
+        "idEleitor": "COLETADO_5324_12",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.943210",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Industrial"
+    },
+    {
+        "idEleitor": "COLETADO_5324_13",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.943234",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Cohab"
+    },
+    {
+        "idEleitor": "COLETADO_5324_14",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.943259",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Centro"
+    },
+    {
+        "idEleitor": "COLETADO_5324_15",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.943284",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Bairro Alto"
+    },
+    {
+        "idEleitor": "COLETADO_5324_16",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.943308",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Cohab"
+    },
+    {
+        "idEleitor": "COLETADO_5324_17",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.943341",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Cohab"
+    },
+    {
+        "idEleitor": "COLETADO_5324_18",
+        "idCandidato": "2",
+        "dataVoto": "2026-05-07T10:53:24.943373",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Centro"
+    },
+    {
+        "idEleitor": "COLETADO_5324_19",
+        "idCandidato": "1",
+        "dataVoto": "2026-05-07T10:53:24.943398",
+        "tipoVoto": "pesquisa_campo",
+        "bairro_origem": "Cohab"
+    }
+]

@@ -1,0 +1,213 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../widgets/disclaimer.dart';
+import 'package:projetoeleitoral/services/services.dart';
+
+class Tela2Votacao extends StatefulWidget {
+  final Eleitor eleitor;
+  const Tela2Votacao({super.key, required this.eleitor});
+
+  @override
+  State<Tela2Votacao> createState() => _Tela2VotacaoState();
+}
+
+class _Tela2VotacaoState extends State<Tela2Votacao> {
+  final Set<String> _selectedCands = {};
+  String _tipo = 'presidente';
+  late final List<Candidato> _cands;
+
+  @override
+  void initState() {
+    super.initState();
+    _cands = _filtrarPorCidade();
+  }
+
+  List<Candidato> _filtrarPorCidade() {
+    final todos = DatabaseService.getCandidatos();
+    final cidade = widget.eleitor.cidade;
+    if (cidade == null || cidade.trim().isEmpty) return todos;
+    return todos.where((c) {
+      if (c.cargo == 'Presidente') return true;
+      return c.cidade?.toLowerCase() == cidade.toLowerCase();
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hash = DatabaseService.hashCpf(widget.eleitor.cpf);
+    final jaVotou = DatabaseService.jaVotou(hash);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('VOTAÇÃO  |  ${_selectedCands.length}/6', style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: const Color(0xFF008F39),
+        foregroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Disclaimer(),
+            const SizedBox(height: 16),
+            Text('Eleitor: ${widget.eleitor.nome}', style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text('Cidade: ${widget.eleitor.cidade ?? '—'} | Bairro: ${widget.eleitor.bairro}', style: const TextStyle(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _selectedCands.length == 6 ? Colors.green.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _selectedCands.length == 6 ? Colors.green : Colors.grey, width: 1),
+                ),
+                child: Text(
+                  '${_selectedCands.length}/6 candidatos selecionados',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: _selectedCands.length == 6 ? Colors.green : Colors.white70,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'presidente', label: Text('Presidente', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ButtonSegment(value: 'deputado_estadual', label: Text('Dep. Est.', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ButtonSegment(value: 'deputado_federal', label: Text('Dep. Fed.', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ButtonSegment(value: 'senador', label: Text('Senador', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ButtonSegment(value: 'prefeito', label: Text('Prefeito', style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+                selected: {_tipo},
+                onSelectionChanged: (s) => setState(() => _tipo = s.first),
+              ),
+            ),
+            if (_cands.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('Nenhum candidato disponível para sua cidade.', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _cands.length,
+                itemBuilder: (ctx, i) {
+                  final c = _cands[i];
+                  final isSelected = _selectedCands.contains(c.id);
+                  return Card(
+                    color: isSelected ? Colors.green.withOpacity(0.1) : null,
+                    child: CheckboxListTile(
+                      value: isSelected,
+                      onChanged: jaVotou ? null : (v) => _toggleCandidato(c.id),
+                      secondary: c.fotoPath != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.memory(base64Decode(c.fotoPath!), width: 50, height: 50, fit: BoxFit.cover),
+                            )
+                          : const Icon(Icons.person, size: 50, color: Color(0xFF8A2BE2)),
+                      title: Text('${c.nome} - ${c.partido}', style: const TextStyle(fontWeight: FontWeight.w900)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Número: ${c.numero}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white70)),
+                          if (c.estado != null || c.cidade != null)
+                            Text('${c.cidade ?? ''}${c.cidade != null && c.estado != null ? '/' : ''}${c.estado ?? ''}', style: const TextStyle(fontSize: 12, color: Colors.white54)),
+                        ],
+                      ),
+                      activeColor: Colors.green,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _selectedCands.isEmpty || jaVotou ? null : _votar,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF008F39),
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(50),
+              ),
+              child: Text(
+                'CONFIRMAR ${_selectedCands.length} VOTO(S)',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _toggleCandidato(String id) {
+    setState(() {
+      if (_selectedCands.contains(id)) {
+        _selectedCands.remove(id);
+      } else if (_selectedCands.length < 6) {
+        _selectedCands.add(id);
+      }
+    });
+  }
+
+  void _votar() async {
+    final hash = DatabaseService.hashCpf(widget.eleitor.cpf);
+    if (DatabaseService.jaVotou(hash)) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            content: const Text('Você já votou!'),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+          ),
+        );
+      }
+      return;
+    }
+
+    final selectedNames = _cands.where((c) => _selectedCands.contains(c.id)).toList();
+    for (final cand in selectedNames) {
+      await DatabaseService.saveVoto(Voto(
+        idEleitor: widget.eleitor.id,
+        idCandidato: cand.id,
+        tipoVoto: _tipo,
+        dataVoto: DateTime.now(),
+      ));
+    }
+
+    if (mounted) {
+      HapticFeedback.heavyImpact();
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('VOTO CONFIRMADO!', style: TextStyle(fontWeight: FontWeight.w900)),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${_selectedCands.length}/6 votos registrados', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+              const SizedBox(height: 10),
+              const Text('Candidatos:', style: TextStyle(fontWeight: FontWeight.w900)),
+              ...selectedNames.map((c) => Text('  - ${c.nome} (${c.numero})')),
+              const SizedBox(height: 10),
+              Text('${_selectedCands.length} registro(s) salvo(s) no banco de dados.', style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).popUntil((r) => r.isFirst);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008F39)),
+              child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+}

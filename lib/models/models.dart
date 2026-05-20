@@ -53,6 +53,8 @@ class Candidato {
   final String nome;
   final int numero;
   final String? fotoPath;
+  final String? estado;
+  final String? cidade;
   int votos;
 
   Candidato({
@@ -60,6 +62,8 @@ class Candidato {
     required this.nome,
     required this.numero,
     this.fotoPath,
+    this.estado,
+    this.cidade,
     this.votos = 0,
   });
 
@@ -68,6 +72,8 @@ class Candidato {
         'nome': nome,
         'numero': numero,
         'fotoPath': fotoPath,
+        'estado': estado,
+        'cidade': cidade,
         'votos': votos,
       };
 
@@ -76,6 +82,8 @@ class Candidato {
         nome: json['nome'],
         numero: json['numero'],
         fotoPath: json['fotoPath'],
+        estado: json['estado'],
+        cidade: json['cidade'],
         votos: json['votos'] ?? 0,
       );
 
@@ -84,6 +92,8 @@ class Candidato {
     String? nome,
     int? numero,
     String? fotoPath,
+    String? estado,
+    String? cidade,
     int? votos,
   }) {
     return Candidato(
@@ -91,6 +101,8 @@ class Candidato {
       nome: nome ?? this.nome,
       numero: numero ?? this.numero,
       fotoPath: fotoPath ?? this.fotoPath,
+      estado: estado ?? this.estado,
+      cidade: cidade ?? this.cidade,
       votos: votos ?? this.votos,
     );
   }

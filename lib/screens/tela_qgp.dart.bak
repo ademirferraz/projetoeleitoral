@@ -1,0 +1,76 @@
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../widgets/disclaimer.dart';
+import 'package:projetoeleitoral/services/services.dart';
+
+class TelaQGP extends StatelessWidget {
+  const TelaQGP({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = DatabaseService.getCandidatos();
+    final t = DatabaseService.getTotalVotos();
+    final p = DatabaseService.getVotosPesquisa();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('CENTRAL QGP', style: TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: const Color(0xFF8A2BE2),
+        foregroundColor: Colors.white,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Disclaimer(),
+            const SizedBox(height: 10),
+            const Text('MAPA DE DESEMPENHO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 20),
+            Expanded(
+              child: c.isEmpty
+                  ? const Center(child: Text('Sem candidatos', style: TextStyle(fontWeight: FontWeight.w900)))
+                  : BarChart(BarChartData(
+                      alignment: BarChartAlignment.spaceAround,
+                      maxY: t > 0 ? c.map((x) => x.votos.toDouble()).reduce((a, b) => a > b ? a : b) * 1.2 : 10,
+                      titlesData: FlTitlesData(
+                        show: true,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (v, m) {
+                              final i = v.toInt();
+                              if (i >= 0 && i < c.length) {
+                                return Padding(padding: const EdgeInsets.only(top: 8), child: Text(c[i].nome, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900)));
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                      ),
+                      barGroups: c.asMap().entries.map((e) => BarChartGroupData(
+                        x: e.key,
+                        barRods: [BarChartRodData(toY: e.value.votos.toDouble(), color: const Color(0xFF8A2BE2), width: 25, borderRadius: const BorderRadius.vertical(top: Radius.circular(5)))],
+                      )).toList(),
+                    )),
+            ),
+            const SizedBox(height: 20),
+            const Text('SENTIMENTO DO ELEITOR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 10),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              _sentimentoItem(Icons.thumb_down, 'CONTRÁRIO', p['vermelho'] ?? 0, const Color(0xFFB24040)),
+              _sentimentoItem(Icons.thumb_up, 'A FAVOR', p['verde'] ?? 0, const Color(0xFF008F39)),
+              _sentimentoItem(Icons.question_mark, 'INDECISO', p['branco'] ?? 0, Colors.white),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sentimentoItem(IconData icon, String label, int valor, Color cor) {
+    return Column(children: [
+      Icon(icon, color: cor, size: 40),
+      Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+      Text('$valor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: cor)),
+    ]);
+  }
+}

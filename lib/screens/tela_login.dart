@@ -1,99 +1,109 @@
 import 'package:flutter/material.dart';
-import '../widgets/disclaimer.dart';
 import 'tela_cadastro.dart';
 import 'tela_admin.dart';
-import 'tela_qgp.dart';
 import 'tela_pesquisador.dart';
 
-
-
-// =========================
-// TELA LOGIN
-// =========================
-class TelaLogin extends StatefulWidget {
+class TelaLogin extends StatelessWidget {
   const TelaLogin({super.key});
-
-  @override
-  State<TelaLogin> createState() => _TelaLoginState();
-}
-
-class _TelaLoginState extends State<TelaLogin> {
-  String _tipoUsuario = 'eleitor';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sistema de Pesquisa'),
-        backgroundColor: const Color(0xFF8A2BE2),
-      ),
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [const Color(0xFF8A2BE2), Colors.purple[800]!],
+            colors: [Colors.deepPurple, Colors.purpleAccent],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.how_to_vote, size: 80),
-              const SizedBox(height: 20),
-
-              const Text(
-                'Sistema de Pesquisa Eleitoral',
-                style: TextStyle(fontSize: 24),
-                textAlign: TextAlign.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.how_to_vote, size: 120, color: Colors.white),
+            const SizedBox(height: 20),
+            const Text(
+              "Sistema de Pesquisa Eleitoral",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
-
-              const SizedBox(height: 20),
-              const Disclaimer(),
-
-              const SizedBox(height: 20),
-
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'eleitor', label: Text('Eleitor')),
-                  ButtonSegment(value: 'admin', label: Text('Admin')),
-                  ButtonSegment(value: 'pesquisador', label: Text('Pesquisador')),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Enquete simulada para fins educativos",
+              style: TextStyle(fontSize: 18, color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  Card(
+                    color: Colors.white,
+                    elevation: 6,
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Tela1Cadastro())),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(25),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.person, color: Colors.deepPurple, size: 30),
+                            SizedBox(width: 20),
+                            Text("Eleitor", style: TextStyle(fontSize: 24, color: Colors.black87, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Card(
+                    color: Colors.white,
+                    elevation: 6,
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAdminLogin())),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(25),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.admin_panel_settings, color: Colors.deepPurple, size: 30),
+                            SizedBox(width: 20),
+                            Text("Admin", style: TextStyle(fontSize: 24, color: Colors.black87, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Card(
+                    color: Colors.white,
+                    elevation: 6,
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaPesquisador())),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(25),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.search, color: Colors.deepPurple, size: 30),
+                            SizedBox(width: 20),
+                            Text("Pesquisador", style: TextStyle(fontSize: 24, color: Colors.black87, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
-                selected: {_tipoUsuario},
-                onSelectionChanged: (s) {
-                  setState(() => _tipoUsuario = s.first);
-                },
               ),
-
-              const SizedBox(height: 20),
-
-              if (_tipoUsuario == 'eleitor')
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const Tela1Cadastro()),
-                  ),
-                  child: const Text('Cadastre-se'),
-                ),
-
-              if (_tipoUsuario == 'admin')
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TelaAdmin()),
-                  ),
-                  child: const Text('Admin'),
-                ),
-
-              if (_tipoUsuario == 'pesquisador')
-                ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TelaPesquisador()),
-                  ),
-                  child: const Text('Pesquisador'),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,0 +1,96 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'services/services.dart';
+
+// --- REMOVI OS IMPORTS DE PASTAS QUE DERAM ERRO ---
+// Mantenha apenas os imports de arquivos que REALMENTE estão na sua pasta lib
+import 'screens/tela_login.dart';
+import 'screens/tela_cadastro.dart';
+import 'screens/tela_resultados.dart';
+import 'screens/tela_admin.dart';
+import 'screens/tela_pesquisador.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DatabaseService.init();
+  runApp(
+    // Se o senhor ainda não tem o VotingProvider, vamos usar um simples para não dar erro
+    ChangeNotifierProvider(
+      create: (context) => SimpleProvider(),
+      child: const MyApp(),
+    ),
+  );
+}
+
+// Classe simples para o Provider não quebrar o código
+class SimpleProvider extends ChangeNotifier {}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'EleicaoFluxo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: Colors.green,
+        scaffoldBackgroundColor: const Color(0xFF121212),
+      ),
+      home: const MainNavigator(),
+    );
+  }
+}
+
+class MainNavigator extends StatelessWidget {
+  const MainNavigator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _btn(context, 'CADASTRO', const Tela1Cadastro()),
+              _btn(context, 'RESULTADOS', const TelaResultados(city: '')),
+              _btn(context, 'GESTÃO', const TelaAdmin()),
+              
+              // NOSSA NOVA FERRAMENTA
+              _btn(context, 'COLETA', const TelaPesquisador(), color: Colors.cyanAccent),
+              
+              const SizedBox(width: 10),
+              IconButton(
+                icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
+                onPressed: () => exit(0),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: const TelaLogin(),
+    );
+  }
+
+  Widget _btn(BuildContext context, String text, Widget destination, {Color color = Colors.white}) {
+    return TextButton(
+      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => destination)),
+      child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+    );
+  }
+}
+
+// --- AS CLASSES ABAIXO DEVEM ESTAR NO SEU ARQUIVO OU IMPORTADAS ---
+// Se elas já existem no seu main.dart original, mantenha-as. 
+// Se der erro de "não encontrado", é porque o senhor precisa colar a lógica delas aqui embaixo.
+
+/* Exemplo rápido se o senhor não tiver as classes em outro lugar:
+class TelaLogin extends StatelessWidget { const TelaLogin({super.key}); @override Widget build(BuildContext context) => Center(child: Text("Login")); }
+class Tela1Cadastro extends StatelessWidget { const Tela1Cadastro({super.key}); @override Widget build(BuildContext context) => Center(child: Text("Cadastro")); }
+class TelaResultados extends StatelessWidget { final dynamic estado; final String city; const TelaResultados({super.key, this.estado, required this.city}); @override Widget build(BuildContext context) => Center(child: Text("Resultados")); }
+class TelaAdmin extends StatelessWidget { const TelaAdmin({super.key}); @override Widget build(BuildContext context) => Center(child: Text("Gestão")); }
+*/

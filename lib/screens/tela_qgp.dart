@@ -1,19 +1,181 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../widgets/disclaimer.dart';
+import 'package:projetoeleitoral/services/services.dart';
 
-// =========================
-// TELA QGP
-// =========================
-class TelaQGP extends StatelessWidget {
+class TelaQGP extends StatefulWidget {
   const TelaQGP({super.key});
 
   @override
+  State<TelaQGP> createState() => _TelaQGPState();
+}
+
+class _TelaQGPState extends State<TelaQGP> {
+  final _nomeController = TextEditingController();
+  final _cpfController = TextEditingController();
+  int _interessados = 0;
+  int _naoInteressados = 0;
+  int _outros = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  void _carregar() {
+    final p = DatabaseService.getVotosPesquisa();
+    _interessados = p['verde'] ?? 0;
+    _naoInteressados = p['vermelho'] ?? 0;
+    _outros = p['branco'] ?? 0;
+  }
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _cpfController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final total = _interessados + _naoInteressados + _outros;
     return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
-        title: const Text('QGP'),
+        title: const Text('MÓDULO QGP', style: TextStyle(fontWeight: FontWeight.w900)),
         backgroundColor: const Color(0xFF8A2BE2),
+        foregroundColor: Colors.white,
       ),
-      body: const Center(child: Text('QGP GRÁFICOS')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Disclaimer(),
+            const SizedBox(height: 20),
+            const Text('REGISTRO DE OPINIÃO', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF8A2BE2))),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _nomeController,
+              decoration: const InputDecoration(
+                labelText: 'Nome (Opcional)',
+                filled: true,
+                fillColor: Color(0xFF1E1E1E),
+                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _cpfController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'CPF (Opcional)',
+                filled: true,
+                fillColor: Color(0xFF1E1E1E),
+                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              ),
+            ),
+            const SizedBox(height: 30),
+            const Center(
+              child: Text('QUAL SUA OPINIÃO?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white70)),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(child: _botaoDecisao('INTERESSADO', Colors.blue, () => _registrar('verde'))),
+                const SizedBox(width: 10),
+                Expanded(child: _botaoDecisao('NÃO\nINTERESSADO', Colors.red, () => _registrar('vermelho'))),
+                const SizedBox(width: 10),
+                Expanded(child: _botaoDecisao('OUTRO', Colors.grey, () => _registrar('branco'))),
+              ],
+            ),
+            const SizedBox(height: 40),
+            const Text('RESULTADO PARCIAL', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+            const Divider(color: Colors.white10, height: 20),
+            _barraResultado('Interessados', _interessados, Colors.blue),
+            _barraResultado('Não Interessados', _naoInteressados, Colors.red),
+            _barraResultado('Outros', _outros, Colors.grey),
+            const SizedBox(height: 25),
+            Center(child: Text('TOTAL COLETADO: $total', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF8A2BE2)))),
+          ],
+        ),
+      ),
     );
+  }
+
+  Widget _botaoDecisao(String label, Color cor, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: cor.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: cor.withOpacity(0.5), width: 2),
+        ),
+        child: Center(
+          child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 12)),
+        ),
+      ),
+    );
+  }
+
+  Widget _barraResultado(String titulo, int valor, Color cor) {
+    final maxVal = [_interessados, _naoInteressados, _outros].reduce((a, b) => a > b ? a : b);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(width: 130, child: Text(titulo, style: const TextStyle(fontSize: 13))),
+          Expanded(
+            child: LinearProgressIndicator(
+              value: maxVal > 0 ? (valor / maxVal).clamp(0.0, 1.0) : 0.0,
+              backgroundColor: Colors.grey[800],
+              color: cor,
+              minHeight: 18,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text('$valor', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        ],
+      ),
+    );
+  }
+
+
+  void _registrar(String tipo) {
+    DatabaseService.savePesquisa(PesquisaCampo(
+      nome: _nomeController.text.isNotEmpty ? _nomeController.text : null,
+      cpf: _cpfController.text.isNotEmpty ? _cpfController.text : null,
+      tipo: tipo,
+      data: DateTime.now(),
+    ));
+    _nomeController.clear();
+    _cpfController.clear();
+    _carregar();
+    setState(() {});
+    try { HapticFeedback.lightImpact(); } catch (_) {}
+    _enviarRelatorio();
+  }
+
+  void _enviarRelatorio() {
+    final phones = DatabaseService.getAdminPhones();
+    final relatorio = DatabaseService.gerarRelatorio();
+    debugPrint('[QGP] Relatório gerado: $relatorio');
+    if (phones.isNotEmpty) {
+      debugPrint('[QGP] Enviado para ${phones.length} telefone(s): $phones');
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(phones.isNotEmpty
+              ? 'Registrado! Relatório enviado para ${phones.length} telefone(s).'
+              : 'Registrado! Nenhum telefone cadastrado para envio.'),
+          backgroundColor: phones.isNotEmpty ? Colors.green : Colors.blueGrey,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 }

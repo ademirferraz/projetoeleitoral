@@ -1,0 +1,938 @@
+import 'dart:convert';
+import 'dart:html' as html;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:projetoeleitoral/services/services.dart';
+import 'tela_resultados.dart';
+import 'tela_qgp.dart';
+
+void logDebug(String msg) => debugPrint('[DEBUG] $msg');
+void logError(String msg, Object e) => debugPrint('[ERROR] $msg: $e');
+
+// =========================
+// TELA LOGIN ADMIN
+// =========================
+class TelaAdminLogin extends StatefulWidget {
+  const TelaAdminLogin({super.key});
+
+  @override
+  State<TelaAdminLogin> createState() => _TelaAdminLoginState();
+}
+
+class _TelaAdminLoginState extends State<TelaAdminLogin> {
+  final _senhaController = TextEditingController();
+
+  @override
+  void dispose() {
+    _senhaController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('LOGIN ADMIN', style: TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.amber[700],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Digite a senha de acesso:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _senhaController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Senha', border: OutlineInputBorder()),
+              onSubmitted: (_) => _login(),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _login,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black, minimumSize: const Size(200, 50)),
+              child: const Text('ENTRAR', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _login() {
+    if (_senhaController.text == 'admin123') {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TelaAdmin()));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha incorreta')));
+    }
+  }
+}
+
+// =========================
+// TELA ADMIN (PAINEL DE GESTÃO)
+// =========================
+class TelaAdmin extends StatefulWidget {
+  const TelaAdmin({super.key});
+
+  @override
+  State<TelaAdmin> createState() => _TelaAdminState();
+}
+
+class _TelaAdminState extends State<TelaAdmin> {
+  List<Candidato> _cands = [];
+  String? _estado;
+  final _cityController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _numeroController = TextEditingController();
+  final _partidoController = TextEditingController();
+  Uint8List? _bytesFoto;
+  String? _cargo;
+  static const _cargos = ['Prefeito', 'Presidente', 'Deputado Estadual', 'Deputado Federal', 'Senador', 'Vereador'];
+  static const _estados = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+
+  // Opinião
+  final _opiniaoNomeController = TextEditingController();
+  final _opiniaoCpfController = TextEditingController();
+  String _opiniaoCandSelecionadoId = '';
+  String _opiniaoOpcao = '';
+
+  // Contatos
+  final _contatoController = TextEditingController();
+  String _contatoTipo = 'telefone';
+  List<ContatoAdmin> _contatos = [];
+
+  // Senha QGP
+  String? _qpgSenha;
+  final _qpgSenhaController = TextEditingController();
+  bool _qpgMostrarResultado = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cands = DatabaseService.getCandidatos();
+    _contatos = DatabaseService.getContatosAdmin();
+    _verificarEnvioAutomatico();
+  }
+
+  @override
+  void dispose() {
+    _cityController.dispose();
+    _nameController.dispose();
+    _numeroController.dispose();
+    _partidoController.dispose();
+    _opiniaoNomeController.dispose();
+    _opiniaoCpfController.dispose();
+    _contatoController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 5,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('PAINEL DE GESTÃO', style: TextStyle(fontWeight: FontWeight.w900)),
+          backgroundColor: Colors.amber[700],
+          bottom: const TabBar(
+            isScrollable: true,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white60,
+            labelStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            indicatorColor: Colors.white,
+            tabs: [
+              Tab(text: 'Filtros'),
+              Tab(text: 'Candidatos'),
+              Tab(text: 'QGP'),
+              Tab(text: 'Telefone'),
+              Tab(text: 'Testes'),
+            ],
+          ),
+        ),
+        body: TabBarView(children: [_tabFiltros(), _tabCandidatos(), _tabQGP(), _tabTelefones(), _tabTestes()]),
+      ),
+    );
+  }
+
+  Widget _tabFiltros() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Filtros de Resultados', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.amber)),
+          const SizedBox(height: 20),
+          const Text('Estado:', style: TextStyle(fontWeight: FontWeight.w900)),
+          DropdownButtonFormField<String>(
+            value: _estado,
+            decoration: const InputDecoration(border: OutlineInputBorder()),
+            items: _estados.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w900)))).toList(),
+            onChanged: (v) => setState(() => _estado = v),
+          ),
+          const SizedBox(height: 16),
+          const Text('Cidade:', style: TextStyle(fontWeight: FontWeight.w900)),
+          TextField(controller: _cityController, decoration: const InputDecoration(border: OutlineInputBorder())),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TelaResultados(estado: _estado, city: _cityController.text))),
+            icon: const Icon(Icons.bar_chart),
+            label: const Text('VER RESULTADOS', style: TextStyle(fontWeight: FontWeight.w900)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D47A1), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaQGP())),
+            icon: const Icon(Icons.rate_review),
+            label: const Text('ABRIR QGP', style: TextStyle(fontWeight: FontWeight.w900)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A2BE2), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabCandidatos() {
+    return Column(
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('CADASTRO DE CANDIDATOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _importarFoto,
+                  icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
+                  label: const Text('ADICIONAR POR FOTO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A2BE2), foregroundColor: Colors.white),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: _addCandidato,
+                  icon: const Icon(Icons.save, color: Colors.white),
+                  label: const Text('CADASTRAR', style: TextStyle(fontWeight: FontWeight.w900)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008F39), foregroundColor: Colors.white),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: _limpar,
+                  icon: const Icon(Icons.delete_forever, color: Colors.white),
+                  label: const Text('LIMPAR BANCO', style: TextStyle(fontWeight: FontWeight.w900)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB24040), foregroundColor: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  image: _bytesFoto != null ? DecorationImage(image: MemoryImage(_bytesFoto!), fit: BoxFit.cover) : null,
+                  border: Border.all(color: const Color(0xFF8A2BE2), width: 3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: _bytesFoto == null ? const Icon(Icons.person, size: 60, color: Colors.white54) : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: 'Nome', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _numeroController,
+                            decoration: const InputDecoration(labelText: 'Número', border: OutlineInputBorder()),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _partidoController,
+                            decoration: const InputDecoration(labelText: 'CARGO', border: OutlineInputBorder()),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: DropdownButtonFormField<String>(
+            value: _cargo,
+            decoration: const InputDecoration(labelText: 'Cargo', border: OutlineInputBorder()),
+            items: _cargos.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.w900)))).toList(),
+            onChanged: (v) => setState(() => _cargo = v),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _estado,
+                  decoration: const InputDecoration(labelText: 'Estado', border: OutlineInputBorder()),
+                  items: _estados.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  onChanged: (v) => setState(() => _estado = v),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _cityController,
+                  decoration: const InputDecoration(labelText: 'Cidade', border: OutlineInputBorder()),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _cands.length,
+            itemBuilder: (ctx, i) {
+              final c = _cands[i];
+              return ListTile(
+                leading: c.fotoPath != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(base64Decode(c.fotoPath!), width: 40, height: 40, fit: BoxFit.cover),
+                      )
+                    : const Icon(Icons.person, color: Color(0xFF8A2BE2)),
+                title: Text(c.nome, style: const TextStyle(fontWeight: FontWeight.w900)),
+                subtitle: Text('${c.partido} - ${c.numero}${c.estado != null ? ' | ${c.cidade ?? ''}/${c.estado}' : ''}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                trailing: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFB24040)), onPressed: () => _delCandidate(c.id)),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _importarFoto() async {
+    try {
+      FilePickerResult? r = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false, withData: true);
+      if (r != null && r.files.isNotEmpty) {
+        String name = r.files.first.name;
+        _bytesFoto = r.files.first.bytes;
+        String semExt = name.split('.').first;
+        List<String> d = semExt.split('_');
+        if (d.length >= 3) {
+          _partidoController.text = d.last.trim();
+          _numeroController.text = d[d.length - 2].trim();
+          _nameController.text = d.sublist(0, d.length - 2).join(' ').trim();
+        } else if (d.length == 2) {
+          _numeroController.text = d[0].trim();
+          _partidoController.text = d[1].trim();
+        } else if (d.length == 1) {
+          _numeroController.text = d[0].trim();
+        }
+      }
+    } catch (e) {
+      logError('Erro', e);
+    }
+    setState(() {});
+  }
+
+  Widget _botaoOpcao(String label, Color cor, bool selected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          color: selected ? cor.withOpacity(0.3) : cor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? cor : cor.withOpacity(0.3), width: selected ? 3 : 1),
+        ),
+        child: Center(child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: cor, fontWeight: FontWeight.bold, fontSize: 12))),
+      ),
+    );
+  }
+
+  final _votosQtdController = TextEditingController();
+  String _votosCandSelecionado = 'random';
+
+  Widget _tabTestes() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            const Text('FERRAMENTAS DE AGILIDADE', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _gerarEleitores,
+              icon: const Icon(Icons.people),
+              label: const Text('GERAR 50 ELEITORES', style: TextStyle(fontWeight: FontWeight.w900)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A2BE2), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
+            ),
+            const SizedBox(height: 24),
+            const Text('INJETAR VOTOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 10),
+            if (_cands.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text('Cadastre candidatos primeiro para usar a injeção de votos.', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: TextField(
+                      controller: _votosQtdController,
+                      decoration: const InputDecoration(labelText: 'Qtd Votos', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      value: (_votosCandSelecionado == 'random' || _cands.any((c) => c.id == _votosCandSelecionado)) ? _votosCandSelecionado : 'random',
+                      decoration: const InputDecoration(labelText: 'Candidato Destino', border: OutlineInputBorder()),
+                      items: [
+                        const DropdownMenuItem(value: 'random', child: Text('Aleatório (Padrão 30)')),
+                        ..._cands.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.nome} (${c.numero})'))),
+                      ],
+                      onChanged: (v) => setState(() => _votosCandSelecionado = v ?? 'random'),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: _cands.isEmpty ? null : _gerarVotos,
+              icon: const Icon(Icons.how_to_vote),
+              label: const Text('INJETAR VOTOS', style: TextStyle(fontWeight: FontWeight.w900)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008F39), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _limpar,
+              icon: const Icon(Icons.delete_forever),
+              label: const Text('LIMPAR TODOS OS DADOS', style: TextStyle(fontWeight: FontWeight.w900)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB24040), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // ABA OPINIÃO (por candidato)
+  // =========================
+  Widget _tabQGP() {
+    final consolidado = DatabaseService.getConsolidadoOpinioes();
+    final opinioes = DatabaseService.getOpinioesCandidatos();
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('QGP — OPINIÃO POR CANDIDATO', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.cyanAccent)),
+            const SizedBox(height: 12),
+            Row(children: [
+              const Text('Selecione o candidato:', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white70)),
+              const Spacer(),
+              // Senha para desbloquear resultados
+              if (_qpgSenha == null)
+                TextButton.icon(
+                  onPressed: () {
+                    final senha = (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
+                    setState(() => _qpgSenha = senha);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Senha gerada: $senha'), backgroundColor: Colors.green));
+                  },
+                  icon: const Icon(Icons.vpn_key, size: 18),
+                  label: const Text('Gerar Senha', style: TextStyle(fontSize: 12)),
+                )
+              else ...[
+                SizedBox(
+                  width: 120,
+                  child: TextField(
+                    controller: _qpgSenhaController,
+                    decoration: const InputDecoration(labelText: 'Senha', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(8)),
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                TextButton(
+                  onPressed: () {
+                    if (_qpgSenhaController.text == _qpgSenha) {
+                      setState(() => _qpgMostrarResultado = true);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha incorreta!'), backgroundColor: Colors.red));
+                    }
+                  },
+                  child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w900)),
+                ),
+              ],
+            ]),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 170,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _cands.length,
+                itemBuilder: (ctx, i) {
+                  final c = _cands[i];
+                  final sel = _opiniaoCandSelecionadoId == c.id;
+                  return GestureDetector(
+                    onTap: () => setState(() => _opiniaoCandSelecionadoId = c.id),
+                    child: Container(
+                      width: 120,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: sel ? Colors.cyanAccent.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: sel ? Colors.cyanAccent : Colors.grey, width: sel ? 3 : 1),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                        c.fotoPath != null
+                            ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.memory(base64Decode(c.fotoPath!), width: 70, height: 70, fit: BoxFit.cover))
+                            : const Icon(Icons.person, size: 50, color: Colors.cyanAccent),
+                        const SizedBox(height: 4),
+                        Text(c.nome, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        if (c.cargo != null)
+                          Text(c.cargo!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 8, color: Colors.amber), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _opiniaoNomeController,
+              decoration: const InputDecoration(labelText: 'Nome (Opcional)', border: OutlineInputBorder(), filled: true, fillColor: Color(0xFF1E1E1E)),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _opiniaoCpfController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'CPF (Opcional)', border: OutlineInputBorder(), filled: true, fillColor: Color(0xFF1E1E1E)),
+            ),
+            const SizedBox(height: 16),
+            const Text('DECISÃO:', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white70)),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(child: _botaoOpcao('INTERESSADO', Colors.blue, _opiniaoOpcao == 'INTERESSADO', () => setState(() => _opiniaoOpcao = 'INTERESSADO'))),
+              const SizedBox(width: 6),
+              Expanded(child: _botaoOpcao('NÃO\nINTERESSADO', Colors.red, _opiniaoOpcao == 'NAO_INTERESSADO', () => setState(() => _opiniaoOpcao = 'NAO_INTERESSADO'))),
+              const SizedBox(width: 6),
+              Expanded(child: _botaoOpcao('OUTRO', Colors.grey, _opiniaoOpcao == 'OUTRO', () => setState(() => _opiniaoOpcao = 'OUTRO'))),
+            ]),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: (_opiniaoCandSelecionadoId.isEmpty || _opiniaoOpcao.isEmpty) ? null : _gravarOpiniao,
+                  icon: const Icon(Icons.save),
+                  label: const Text('GRAVAR', style: TextStyle(fontWeight: FontWeight.w900)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008F39), minimumSize: const Size.fromHeight(50)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: consolidado.isEmpty ? null : _enviarRelatorio,
+                  icon: const Icon(Icons.send),
+                  label: const Text('ENVIAR', style: TextStyle(fontWeight: FontWeight.w900)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A2BE2), minimumSize: const Size.fromHeight(50)),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 20),
+            const Text('TABELA CONSOLIDADA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+            const Divider(color: Colors.white10, height: 12),
+            if (consolidado.isEmpty)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('Nenhuma opinião registrada.', style: TextStyle(color: Colors.white54)))
+            else if (!_qpgMostrarResultado)
+              const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text('Resultado bloqueado. Gere uma senha acima.', style: TextStyle(color: Colors.white38)))
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(Colors.grey[850]),
+                  columns: const [
+                    DataColumn(label: Text('Candidato', style: TextStyle(fontWeight: FontWeight.w900))),
+                    DataColumn(label: Text('Interessado', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blue))),
+                    DataColumn(label: Text('Não Interessado', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.red))),
+                    DataColumn(label: Text('Outros', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey))),
+                  ],
+                  rows: _cands.map((c) {
+                    final row = consolidado[c.id] ?? {'INTERESSADO': 0, 'NAO_INTERESSADO': 0, 'OUTRO': 0};
+                    final total = (row['INTERESSADO'] as int) + (row['NAO_INTERESSADO'] as int) + (row['OUTRO'] as int);
+                    final pct = (v) => total > 0 ? '${(v / total * 100).toStringAsFixed(0)}%' : '0%';
+                    return DataRow(cells: [
+                      DataCell(Text(c.nome, style: const TextStyle(fontWeight: FontWeight.w900))),
+                      DataCell(Text(pct(row['INTERESSADO']), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
+                      DataCell(Text(pct(row['NAO_INTERESSADO']), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+                      DataCell(Text(pct(row['OUTRO']), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+                    ]);
+                  }).toList(),
+                ),
+              ),
+            if (opinioes.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Text('ÚLTIMOS REGISTROS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+              const Divider(color: Colors.white10, height: 12),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: opinioes.length > 10 ? 10 : opinioes.length,
+                itemBuilder: (ctx, i) {
+                  final o = opinioes[opinioes.length - 1 - i];
+                  final cand = _cands.where((c) => c.id == o.candidatoId).firstOrNull;
+                  final cor = o.opcao == 'INTERESSADO' ? Colors.blue : o.opcao == 'NAO_INTERESSADO' ? Colors.red : Colors.grey;
+                  return ListTile(
+                    dense: true,
+                    leading: Container(width: 8, height: 8, decoration: BoxDecoration(color: cor, shape: BoxShape.circle)),
+                    title: Text('${cand?.nome ?? 'Desconhecido'} — $o.opcao', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+                    subtitle: Text(o.nome ?? 'Anônimo', style: const TextStyle(fontSize: 11)),
+                  );
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _gravarOpiniao() {
+    if (_opiniaoCandSelecionadoId.isEmpty || _opiniaoOpcao.isEmpty) return;
+    DatabaseService.saveOpiniaoCandidato(OpiniaoCandidato(
+      candidatoId: _opiniaoCandSelecionadoId,
+      nome: _opiniaoNomeController.text.isNotEmpty ? _opiniaoNomeController.text : null,
+      cpf: _opiniaoCpfController.text.isNotEmpty ? _opiniaoCpfController.text : null,
+      opcao: _opiniaoOpcao,
+      data: DateTime.now(),
+    ));
+    _opiniaoNomeController.clear();
+    _opiniaoCpfController.clear();
+    _opiniaoOpcao = '';
+    setState(() {});
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opinião registrada com sucesso!'), backgroundColor: Colors.green));
+  }
+
+  void _enviarRelatorio() {
+    final ativos = DatabaseService.getContatosAtivos();
+    if (ativos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nenhum contato ativo cadastrado.'), backgroundColor: Colors.orange));
+      return;
+    }
+
+    final temEmail = ativos.any((c) => c.tipo == 'email');
+    final temWhats = ativos.any((c) => c.tipo == 'telefone');
+
+    if (!temEmail && !temWhats) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nenhum contato ativo do tipo e-mail ou WhatsApp.'), backgroundColor: Colors.orange));
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ENVIAR RELATÓRIO', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Text(
+          'O relatório será enviado simultaneamente para:\n\n'
+          '${temEmail ? '📧 E-mail (${ativos.where((c) => c.tipo == 'email').length} contato(s))\n' : ''}'
+          '${temWhats ? '💬 WhatsApp (${ativos.where((c) => c.tipo == 'telefone').length} contato(s))' : ''}'
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              if (temEmail) _enviarPorEmail(ativos);
+              if (temWhats) _enviarPorWhatsApp(ativos);
+            },
+            icon: const Icon(Icons.send, color: Colors.amber),
+            label: const Text('ENVIAR PARA AMBOS', style: TextStyle(fontWeight: FontWeight.w900)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _enviarPorEmail(List<ContatoAdmin> ativos) {
+    final relatorio = DatabaseService.gerarRelatorio();
+    final dataStr = DateTime.now().toIso8601String().split('T')[0];
+    // Baixar .html
+    final blob = html.Blob([relatorio], 'text/html');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..target = '_blank'
+      ..download = 'relatorio_$dataStr.html';
+    anchor.click();
+    html.Url.revokeObjectUrl(url);
+
+    final emails = ativos.where((c) => c.tipo == 'email').map((c) => c.contato).toList();
+    if (emails.isNotEmpty) {
+      final mailtoLink = 'mailto:${emails.join(',')}?subject=Relatório de Opiniões - $dataStr&body=Segue o relatório em anexo (baixado separadamente).%0D%0A%0D%0AAbra o arquivo .html baixado para visualizar.';
+      html.window.location.href = mailtoLink;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Relatório enviado por e-mail para ${emails.length} contato(s)'), backgroundColor: Colors.green, duration: const Duration(seconds: 4)),
+    );
+  }
+
+  void _enviarPorWhatsApp(List<ContatoAdmin> ativos) {
+    final relatorio = DatabaseService.gerarRelatorio();
+    final texto = Uri.encodeComponent(relatorio.replaceAll(RegExp(r'<[^>]*>'), '').trim());
+    final phones = ativos.where((c) => c.tipo == 'telefone').map((c) => c.contato.replaceAll(RegExp(r'[^0-9]'), '')).toList();
+    if (phones.isNotEmpty) {
+      final phone = phones.first;
+      final waLink = 'https://wa.me/$phone?text=$texto';
+      html.window.location.href = waLink;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('WhatsApp aberto para ${phones.length} contato(s)'), backgroundColor: Colors.green, duration: const Duration(seconds: 4)),
+    );
+  }
+
+  // =========================
+  // ABA CONTATOS (telefone/email)
+  // =========================
+  Widget _tabTelefones() {
+    final ativos = _contatos.where((c) => c.ativo).toList();
+    final inativos = _contatos.where((c) => !c.ativo).toList();
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('CONTATOS CADASTRADOS', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.amber)),
+          const SizedBox(height: 8),
+          const Text('Relatórios são enviados para todos os contatos ativos.', style: TextStyle(fontSize: 12, color: Colors.white54)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _contatoController,
+                  keyboardType: TextInputType.text,
+                  decoration: const InputDecoration(
+                    labelText: 'Telefone ou Email',
+                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: Color(0xFF1E1E1E),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _contatoTipo,
+                    items: const [
+                      DropdownMenuItem(value: 'telefone', child: Icon(Icons.phone, color: Colors.amber)),
+                      DropdownMenuItem(value: 'email', child: Icon(Icons.email, color: Colors.blue)),
+                    ],
+                    onChanged: (v) => setState(() => _contatoTipo = v ?? 'telefone'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: _adicionarContato,
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008F39), foregroundColor: Colors.white, minimumSize: const Size(60, 56)),
+                child: const Icon(Icons.add),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: _contatos.isEmpty
+                ? const Center(child: Text('Nenhum contato cadastrado.', style: TextStyle(color: Colors.white54)))
+                : ListView(
+                    children: [
+                      if (ativos.isNotEmpty) ...[
+                        const Padding(padding: EdgeInsets.only(bottom: 4), child: Text('ATIVOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.green))),
+                        ...ativos.map((c) => Card(
+                          color: const Color(0xFF1E1E1E),
+                          child: ListTile(
+                            leading: Icon(c.tipo == 'telefone' ? Icons.phone : Icons.email, color: c.tipo == 'telefone' ? Colors.amber : Colors.blue),
+                            title: Text(c.contato, style: const TextStyle(fontWeight: FontWeight.w900)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(icon: const Icon(Icons.toggle_on, color: Colors.green), onPressed: () => _toggleContato(c.contato)),
+                                IconButton(icon: const Icon(Icons.delete, color: Color(0xFFB24040)), onPressed: () => _removerContato(c.contato)),
+                              ],
+                            ),
+                          ),
+                        )),
+                      ],
+                      if (inativos.isNotEmpty) ...[
+                        const Padding(padding: EdgeInsets.only(top: 8, bottom: 4), child: Text('INATIVOS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.red))),
+                        ...inativos.map((c) => Card(
+                          color: const Color(0xFF1E1E1E),
+                          child: ListTile(
+                            leading: Icon(c.tipo == 'telefone' ? Icons.phone : Icons.email, color: Colors.grey),
+                            title: Text(c.contato, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.grey)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(icon: const Icon(Icons.toggle_off, color: Colors.grey), onPressed: () => _toggleContato(c.contato)),
+                                IconButton(icon: const Icon(Icons.delete, color: Color(0xFFB24040)), onPressed: () => _removerContato(c.contato)),
+                              ],
+                            ),
+                          ),
+                        )),
+                      ],
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _adicionarContato() {
+    final texto = _contatoController.text.trim();
+    if (texto.isEmpty) return;
+    if (_contatos.any((c) => c.contato == texto)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contato já cadastrado.')));
+      return;
+    }
+    DatabaseService.saveContatoAdmin(ContatoAdmin(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      contato: texto,
+      tipo: _contatoTipo,
+    ));
+    _contatos = DatabaseService.getContatosAdmin();
+    _contatoController.clear();
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Contato $texto cadastrado!')));
+  }
+
+  void _toggleContato(String contato) {
+    DatabaseService.toggleContatoAdmin(contato);
+    _contatos = DatabaseService.getContatosAdmin();
+    setState(() {});
+  }
+
+  void _removerContato(String contato) {
+    DatabaseService.deleteContatoAdmin(contato);
+    _contatos = DatabaseService.getContatosAdmin();
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Contato $contato removido.')));
+  }
+
+  // =========================
+  // MÉTODOS AUXILIARES
+  // =========================
+  void _addCandidato() {
+    if (_nameController.text.isEmpty || _numeroController.text.isEmpty || _partidoController.text.isEmpty) return;
+    String p = _partidoController.text;
+    String s = p.split(' ').length > 1
+        ? p.split(' ').map((x) => x[0]).join('').toUpperCase()
+        : p.substring(0, p.length >= 2 ? 2 : p.length).toUpperCase();
+    String? fotoBase64 = _bytesFoto != null ? base64Encode(_bytesFoto!) : null;
+    DatabaseService.saveCandidato(
+      Candidato(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        nome: _nameController.text,
+        numero: int.tryParse(_numeroController.text) ?? 0,
+        partido: p,
+        sigla: s,
+        cargo: _cargo,
+        fotoPath: fotoBase64,
+        estado: _estado,
+        cidade: _cityController.text.isNotEmpty ? _cityController.text : null,
+      ),
+    );
+    _nameController.clear();
+    _numeroController.clear();
+    _partidoController.clear();
+    _bytesFoto = null;
+    setState(() => _cands = DatabaseService.getCandidatos());
+  }
+
+  void _delCandidate(String id) {
+    DatabaseService.deleteCandidato(id);
+    setState(() => _cands = DatabaseService.getCandidatos());
+  }
+
+  void _gerarEleitores() {
+    for (int i = 0; i < 50; i++) {
+      DatabaseService.saveEleitor(
+        Eleitor(id: 't_$i', nome: 'Eleitor Teste $i', cpf: '0000000000$i', dataNascimento: DateTime(1990, 1, 1), bairro: 'Bairro Teste'),
+      );
+    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('50 Eleitores Gerados!')));
+  }
+
+  void _gerarVotos() {
+    if (_cands.isEmpty) return;
+    int qtd = int.tryParse(_votosQtdController.text) ?? 30;
+    String destino = _votosCandSelecionado;
+    for (int i = 0; i < qtd; i++) {
+      String candId = destino == 'random' ? _cands[i % _cands.length].id : destino;
+      DatabaseService.saveVoto(
+        Voto(idEleitor: 't_custom_${DateTime.now().millisecondsSinceEpoch}_$i', idCandidato: candId, tipoVoto: 'presidente', dataVoto: DateTime.now()),
+      );
+    }
+    setState(() => _cands = DatabaseService.getCandidatos());
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$qtd Votos Injetados com Sucesso!')));
+  }
+
+  void _verificarEnvioAutomatico() {
+    if (!DatabaseService.precisaEnvioAutomatico()) return;
+    final ativos = DatabaseService.getContatosAtivos();
+    final consolidado = DatabaseService.getConsolidadoOpinioes();
+    if (ativos.isEmpty || consolidado.isEmpty) return;
+    DatabaseService.gerarRelatorio();
+    debugPrint('[AUTO-ENVIO] Relatório gerado e enviado para ${ativos.length} contato(s)');
+  }
+
+  void _limpar() {
+    DatabaseService.clearAllData();
+    setState(() {
+      _cands = DatabaseService.getCandidatos();
+      _contatos = [];
+    });
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Banco de Dados Limpo!')));
+  }
+}
