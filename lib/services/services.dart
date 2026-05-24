@@ -14,6 +14,7 @@ class DatabaseService {
   static const String _opinioesCandidatosKey = 'opinioes_candidatos';
   static const String _contatosAdminKey = 'contatos_admin';
   static const String _ultimoEnvioKey = 'ultimo_envio';
+  static const String _qpgSenhaKey = 'qpg_senha';
 
   static Uint8List? _storageData;
   static SharedPreferences? _prefs;
@@ -312,6 +313,21 @@ class DatabaseService {
     return DateTime.now().difference(ultimo).inHours >= 24;
   }
 
+  // ──────────── QGP SENHA ────────────
+
+  static void setQpgSenha(String senha) {
+    _saveData({_qpgSenhaKey: senha});
+  }
+
+  static String? getQpgSenha() {
+    if (_storageData == null) return null;
+    try {
+      final data = utf8.decode(_storageData!);
+      final Map<String, dynamic> json = jsonDecode(data);
+      return json[_qpgSenhaKey] as String?;
+    } catch (_) { return null; }
+  }
+
   // ──────────── RELATÓRIOS ────────────
 
   static String _escapeHtml(String s) {
@@ -467,6 +483,153 @@ class DatabaseService {
 </html>''');
 
     setUltimoEnvio(DateTime.now());
+    return buf.toString();
+  }
+
+  static String gerarRelatorioFromData(Map<String, Map<String, int>> consolidado, List<Candidato> candidatos) {
+    final dataStr = DateTime.now().toLocal().toString().split('.')[0];
+    int totalGeralInter = 0, totalGeralNao = 0, totalGeralOutros = 0;
+    for (final row in consolidado.values) {
+      totalGeralInter += (row['INTERESSADO'] as int);
+      totalGeralNao += (row['NAO_INTERESSADO'] as int);
+      totalGeralOutros += (row['OUTRO'] as int);
+    }
+
+    final buf = StringBuffer();
+    buf.writeln('''<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RELATÓRIO PESQUISADOR - $dataStr</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #121212; color: #e0e0e0; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { color: #ffc107; text-align: center; margin-bottom: 8px; font-size: 26px; }
+    .data { text-align: center; color: #888; font-size: 14px; margin-bottom: 24px; }
+    .candidato-card { background: #1e1e1e; border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid #333; }
+    .candidato-card h2 { color: #00bcd4; margin-bottom: 12px; font-size: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #333; }
+    th { background: #2c2c2c; color: #ffc107; font-weight: bold; }
+    td { color: #e0e0e0; }
+    .pct { font-weight: bold; }
+    .pct-verde { color: #4caf50; }
+    .pct-vermelho { color: #f44336; }
+    .pct-cinza { color: #9e9e9e; }
+    .grafico-wrapper { max-width: 500px; margin: 0 auto 8px; }
+    .geral-section { background: #1e1e1e; border-radius: 12px; padding: 20px; border: 1px solid #333; }
+    .geral-section h2 { color: #ffc107; margin-bottom: 12px; }
+    .footer { text-align: center; color: #555; font-size: 12px; margin-top: 24px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>RELATÓRIO DO PESQUISADOR</h1>
+  <p class="data">Gerado em: $dataStr</p>''');
+
+    int chartIndex = 0;
+    for (final c in candidatos) {
+      final row = consolidado[c.id];
+      if (row == null) continue;
+      final interessados = row['INTERESSADO'] as int;
+      final naoInteressados = row['NAO_INTERESSADO'] as int;
+      final outros = row['OUTRO'] as int;
+      final total = interessados + naoInteressados + outros;
+      if (total == 0) continue;
+
+      final pInter = (interessados / total * 100).toStringAsFixed(1);
+      final pNao = (naoInteressados / total * 100).toStringAsFixed(1);
+      final pOut = (outros / total * 100).toStringAsFixed(1);
+      final nomeEscaped = _escapeHtml(c.nome);
+      final ci = chartIndex;
+
+      buf.writeln('''
+  <div class="candidato-card">
+    <h2>${nomeEscaped}</h2>
+    <table>
+      <tr><th>Categoria</th><th>Quantidade</th><th>Percentual</th></tr>
+      <tr><td>Interessado</td><td>$interessados</td><td class="pct pct-verde">${pInter}%</td></tr>
+      <tr><td>Não Interessado</td><td>$naoInteressados</td><td class="pct pct-vermelho">${pNao}%</td></tr>
+      <tr><td>Outros</td><td>$outros</td><td class="pct pct-cinza">${pOut}%</td></tr>
+    </table>
+    <div class="grafico-wrapper">
+      <canvas id="chart$ci" width="400" height="220"></canvas>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var ctx = document.getElementById('chart$ci').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Interessado', 'Não Interessado', 'Outros'],
+          datasets: [{
+            label: '${nomeEscaped}',
+            data: [$interessados, $naoInteressados, $outros],
+            backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'],
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: '#aaa' }, grid: { color: '#333' } },
+            x: { ticks: { color: '#aaa' } }
+          }
+        }
+      });
+    })();
+  </script>''');
+      chartIndex++;
+    }
+
+    buf.writeln('''
+  <div class="geral-section">
+    <h2>QGP — Coleta Geral</h2>
+    <table>
+      <tr><th>Opção</th><th>Total</th></tr>
+      <tr><td>Interessados</td><td>$totalGeralInter</td></tr>
+      <tr><td>Não Interessados</td><td>$totalGeralNao</td></tr>
+      <tr><td>Outros</td><td>$totalGeralOutros</td></tr>
+    </table>
+    <div class="grafico-wrapper">
+      <canvas id="chartGeral" width="400" height="220"></canvas>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var ctx = document.getElementById('chartGeral').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Interessados', 'Não Interessados', 'Outros'],
+          datasets: [{
+            label: 'Geral',
+            data: [$totalGeralInter, $totalGeralNao, $totalGeralOutros],
+            backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'],
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: '#aaa' }, grid: { color: '#333' } },
+            x: { ticks: { color: '#aaa' } }
+          }
+        }
+      });
+    })();
+  </script>
+  <p class="footer">Relatório gerado pelo pesquisador — dados não persistidos no banco central.</p>
+</div>
+</body>
+</html>''');
+
     return buf.toString();
   }
 

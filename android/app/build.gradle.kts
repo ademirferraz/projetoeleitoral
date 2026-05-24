@@ -7,7 +7,10 @@ plugins {
 
 android {
     namespace = "com.eleitoral.projeto_eleitoral"
-    compileSdk = flutter.compileSdkVersion
+
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
+
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
