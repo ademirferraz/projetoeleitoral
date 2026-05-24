@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  auditoria-eleitoral:
+    image: cirruslabs/flutter:latest
+    container_name: auditoria-eleitoral
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: >
+      bash -c "
+      flutter pub get &&
+      flutter test &&
+      flutter build apk --release &&
+      flutter doctor
+      "

@@ -1,0 +1,26 @@
+{
+  "name": "projetoeleitoral",
+  "version": "1.0.0",
+  "description": "A new Flutter project.",
+  "main": "batizar_fotos.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "start": "node batizar_fotos.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ademirferraz/projetoeleitoral.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ademirferraz/projetoeleitoral/issues"
+  },
+  "homepage": "https://github.com/ademirferraz/projetoeleitoral#readme"
+}

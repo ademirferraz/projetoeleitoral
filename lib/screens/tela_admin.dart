@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:projetoeleitoral/services/services.dart';
+import 'package:projetoeleitoral/utils/report_helper.dart';
 import 'tela_resultados.dart';
 
 void logDebug(String msg) => debugPrint('[DEBUG] $msg');
@@ -121,7 +121,7 @@ class _TelaAdminState extends State<TelaAdmin> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('PAINEL DE GESTÃO', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -137,11 +137,10 @@ class _TelaAdminState extends State<TelaAdmin> {
               Tab(text: 'Filtros'),
               Tab(text: 'Candidatos'),
               Tab(text: 'QGP'),
-              Tab(text: 'Testes'),
             ],
           ),
         ),
-        body: TabBarView(children: [_tabFiltros(), _tabCandidatos(), _tabQGP(), _tabTestes()]),
+        body: TabBarView(children: [_tabFiltros(), _tabCandidatos(), _tabQGP()]),
       ),
     );
   }
@@ -401,77 +400,6 @@ class _TelaAdminState extends State<TelaAdmin> {
     );
   }
 
-  final _votosQtdController = TextEditingController();
-  String _votosCandSelecionado = 'random';
-
-  Widget _tabTestes() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            const Text('FERRAMENTAS DE AGILIDADE', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _gerarEleitores,
-              icon: const Icon(Icons.people),
-              label: const Text('GERAR 50 ELEITORES', style: TextStyle(fontWeight: FontWeight.w900)),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A2BE2), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
-            ),
-            const SizedBox(height: 24),
-            const Text('INJETAR VOTOS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 10),
-            if (_cands.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text('Cadastre candidatos primeiro para usar a injeção de votos.', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-              )
-            else
-              Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: TextField(
-                      controller: _votosQtdController,
-                      decoration: const InputDecoration(labelText: 'Qtd Votos', border: OutlineInputBorder()),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      value: (_votosCandSelecionado == 'random' || _cands.any((c) => c.id == _votosCandSelecionado)) ? _votosCandSelecionado : 'random',
-                      decoration: const InputDecoration(labelText: 'Candidato Destino', border: OutlineInputBorder()),
-                      items: [
-                        const DropdownMenuItem(value: 'random', child: Text('Aleatório (Padrão 30)')),
-                        ..._cands.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.nome} (${c.numero})'))),
-                      ],
-                      onChanged: (v) => setState(() => _votosCandSelecionado = v ?? 'random'),
-                    ),
-                  ),
-                ],
-              ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: _cands.isEmpty ? null : _gerarVotos,
-              icon: const Icon(Icons.how_to_vote),
-              label: const Text('INJETAR VOTOS', style: TextStyle(fontWeight: FontWeight.w900)),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008F39), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _limpar,
-              icon: const Icon(Icons.delete_forever),
-              label: const Text('LIMPAR TODOS OS DADOS', style: TextStyle(fontWeight: FontWeight.w900)),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB24040), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(50)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // =========================
   // ABA OPINIÃO (por candidato)
   // =========================
@@ -493,6 +421,7 @@ class _TelaAdminState extends State<TelaAdmin> {
                   onPressed: () async {
                     final senha = (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
                     setState(() => _qpgSenha = senha);
+                    DatabaseService.setQpgSenha(senha);
                     await showDialog(
                       context: context,
                       barrierDismissible: false,
@@ -651,26 +580,28 @@ class _TelaAdminState extends State<TelaAdmin> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opinião registrada com sucesso!'), backgroundColor: Colors.green));
   }
 
-  void _salvarRelatorio() {
+  Future<void> _salvarRelatorio() async {
     final relatorio = DatabaseService.gerarRelatorio();
     final dataStr = DateTime.now().toIso8601String().split('T')[0];
-    final blob = html.Blob([relatorio], 'text/html');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..target = '_blank'
-      ..download = 'relatorio_$dataStr.html';
-    anchor.click();
-    html.Url.revokeObjectUrl(url);
-    _ultimoRelatorioHtml = relatorio;
-    if (mounted) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Relatório baixado com sucesso!'), backgroundColor: Colors.green, duration: Duration(seconds: 3)),
-      );
+    try {
+      await ReportHelper.downloadReport('relatorio_$dataStr.html', relatorio);
+      _ultimoRelatorioHtml = relatorio;
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Relatório baixado com sucesso!'), backgroundColor: Colors.green, duration: Duration(seconds: 3)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar relatório: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
-  void _abrirRelatorio() {
+  Future<void> _abrirRelatorio() async {
     final htmlContent = _ultimoRelatorioHtml;
     if (htmlContent == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -678,14 +609,16 @@ class _TelaAdminState extends State<TelaAdmin> {
       );
       return;
     }
-    final blob = html.Blob([htmlContent], 'text/html');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.window.open(url, '_blank');
+    try {
+      await ReportHelper.openReport(htmlContent);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao abrir relatório: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
-
-  // =========================
-  // ABA CONTATOS (telefone/email)
-  // =========================
 
   // =========================
   // MÉTODOS AUXILIARES
@@ -719,29 +652,6 @@ class _TelaAdminState extends State<TelaAdmin> {
     setState(() => _cands = DatabaseService.getCandidatos());
   }
 
-  void _gerarEleitores() {
-    for (int i = 0; i < 50; i++) {
-      DatabaseService.saveEleitor(
-        Eleitor(id: 't_$i', nome: 'Eleitor Teste $i', cpf: '111111111${i.toString().padLeft(2, '0')}', dataNascimento: DateTime(1990, 1, 1), bairro: 'Bairro Teste'),
-      );
-    }
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('50 Eleitores Gerados!')));
-  }
-
-  void _gerarVotos() {
-    if (_cands.isEmpty) return;
-    int qtd = int.tryParse(_votosQtdController.text) ?? 30;
-    String destino = _votosCandSelecionado;
-    for (int i = 0; i < qtd; i++) {
-      String candId = destino == 'random' ? _cands[i % _cands.length].id : destino;
-      DatabaseService.saveVoto(
-        Voto(idEleitor: 't_custom_${DateTime.now().millisecondsSinceEpoch}_$i', idCandidato: candId, tipoVoto: 'presidente', dataVoto: DateTime.now()),
-      );
-    }
-    setState(() => _cands = DatabaseService.getCandidatos());
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$qtd Votos Injetados com Sucesso!')));
-  }
-
   void _verificarEnvioAutomatico() {
     if (!DatabaseService.precisaEnvioAutomatico()) return;
     final consolidado = DatabaseService.getConsolidadoOpinioes();
@@ -750,45 +660,4 @@ class _TelaAdminState extends State<TelaAdmin> {
     debugPrint('[AUTO] Relatório gerado automaticamente.');
   }
 
-  void _limpar() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('LIMPAR TODOS OS DADOS', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: const Text('Tem certeza? Esta ação irá apagar TODOS os dados (candidatos, eleitores, votos).\n\nDigite "LIMPAR" para confirmar:'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.w900))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB24040)),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (c2) => AlertDialog(
-                  title: const Text('CONFIRMAÇÃO FINAL', style: TextStyle(fontWeight: FontWeight.w900)),
-                  content: const Text('Todos os dados serão perdidos permanentemente. Deseja continuar?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(c2, false), child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.w900))),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB24040)),
-                      onPressed: () => Navigator.pop(c2, true),
-                      child: const Text('SIM, LIMPAR TUDO', style: TextStyle(fontWeight: FontWeight.w900)),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                DatabaseService.clearAllData();
-                setState(() => _cands = DatabaseService.getCandidatos());
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Banco de Dados Limpo!')));
-                }
-              }
-            },
-            child: const Text('Confirmar', style: TextStyle(fontWeight: FontWeight.w900)),
-          ),
-        ],
-      ),
-    );
-  }
 }
