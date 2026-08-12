@@ -1,6 +1,6 @@
 workflows:
   flutter-build:
-    name: Flutter Android and iOS Build
+    name: Flutter iOS Build
     instance_type: mac_mini_m2
     environment:
       flutter: stable
@@ -8,19 +8,8 @@ workflows:
       - name: Get Flutter packages
         script: |
           flutter pub get
-      - name: Flutter analyze
-        script: |
-          flutter analyze || true
-      - name: Build Android APK
-        script: |
-          flutter build apk --release
-      - name: Build Android App Bundle
-        script: |
-          flutter build appbundle --release
       - name: Build iOS IPA
         script: |
           flutter build ipa --release --no-codesign
     artifacts:
-      - build/app/outputs/flutter-apk/*.apk
-      - build/app/outputs/bundle/release/*.aab
       - build/ios/ipa/*.ipa
