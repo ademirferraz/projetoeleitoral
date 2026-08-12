@@ -357,4 +357,5 @@ class _TelaPesquisadorState extends State<TelaPesquisador> {
       ),
     );
   }
+
 }
