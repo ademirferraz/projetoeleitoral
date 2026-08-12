@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "809268677856",
+    "firebase_url": "https://pesquisaeleitoral-2471c-default-rtdb.firebaseio.com",
+    "project_id": "pesquisaeleitoral-2471c",
+    "storage_bucket": "pesquisaeleitoral-2471c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:809268677856:android:483c4667f2c24cdd2ed485",
+        "android_client_info": {
+          "package_name": "com.projetoeleitoral.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCBG_6C7IjWjHBgSx7gqaNDbeuuOfUrj58"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,7 +1,7 @@
 name: projetoeleitoral
 description: "Sistema de Consulta Eleitoral"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+18
 
 environment:
   sdk: ^3.10.4
@@ -20,14 +20,25 @@ dependencies:
   shared_preferences: ^2.2.3
   provider: ^6.1.2
   path_provider: ^2.1.0
+  firebase_core: ^3.12.0
+  firebase_analytics: ^11.5.0
+  url_launcher: ^6.3.0
+  in_app_purchase: ^3.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
   assets:
-    - assets/images/
-  # fonts removed: use system defaults to avoid missing asset errors
+    - assets/icon/
+    - assets/ajuda/
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"

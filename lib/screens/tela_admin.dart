@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:file_picker/file_picker.dart';
 import 'package:projetoeleitoral/services/services.dart';
+import 'package:projetoeleitoral/services/admin_auth_service.dart';
 import 'package:projetoeleitoral/utils/report_helper.dart';
 import 'tela_resultados.dart';
+import 'tela_recuperar_senha.dart';
 
 void logDebug(String msg) => debugPrint('[DEBUG] $msg');
 void logError(String msg, Object e) => debugPrint('[ERROR] $msg: $e');
@@ -21,10 +24,35 @@ class TelaAdminLogin extends StatefulWidget {
 
 class _TelaAdminLoginState extends State<TelaAdminLogin> {
   final _senhaController = TextEditingController();
+  final _confirmarController = TextEditingController();
+  final _respostaController = TextEditingController();
+  final _perguntaCustomController = TextEditingController();
+  String? _perguntaSelecionada;
+  bool _temSenha = false;
+  bool _carregando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _iniciar();
+  }
+
+  Future<void> _iniciar() async {
+    final tem = await AdminAuthService.hasSenha();
+    if (mounted) {
+      setState(() {
+        _temSenha = tem;
+        _carregando = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
     _senhaController.dispose();
+    _confirmarController.dispose();
+    _respostaController.dispose();
+    _perguntaCustomController.dispose();
     super.dispose();
   }
 
@@ -32,40 +60,131 @@ class _TelaAdminLoginState extends State<TelaAdminLogin> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('LOGIN ADMIN', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: Text(_temSenha ? 'LOGIN ADMIN' : 'DEFINIR SENHA ADMIN',
+            style: const TextStyle(fontWeight: FontWeight.w900)),
         backgroundColor: Colors.amber[700],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Digite a senha de acesso:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _senhaController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Senha', border: OutlineInputBorder()),
-              onSubmitted: (_) => _login(),
+      body: _carregando
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 24),
+                  Text(
+                    _temSenha ? 'Digite a senha de acesso:' : 'Defina a senha do administrador:',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _senhaController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Senha', border: OutlineInputBorder()),
+                    onSubmitted: (_) => _entrar(),
+                  ),
+                  if (!_temSenha) ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _confirmarController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Confirmar senha', border: OutlineInputBorder()),
+                      onSubmitted: (_) => _entrar(),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('PERGUNTA DE SEGURANÇA',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white70)),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _perguntaSelecionada,
+                      isExpanded: true,
+                      hint: const Text('Escolha uma pergunta'),
+                      items: [
+                        ...AdminAuthService.perguntasPadrao
+                            .map((p) => DropdownMenuItem(value: p, child: Text(p, overflow: TextOverflow.ellipsis))),
+                        const DropdownMenuItem(value: AdminAuthService.opcaoPersonalizada, child: Text('Outra (digitar)')),
+                      ],
+                      onChanged: (v) => setState(() => _perguntaSelecionada = v),
+                    ),
+                    if (_perguntaSelecionada == AdminAuthService.opcaoPersonalizada) ...[
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _perguntaCustomController,
+                        decoration: const InputDecoration(labelText: 'Digite a pergunta', border: OutlineInputBorder()),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _respostaController,
+                      decoration: const InputDecoration(labelText: 'Resposta', border: OutlineInputBorder()),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _entrar,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black, minimumSize: const Size(200, 50)),
+                    child: Text(_temSenha ? 'ENTRAR' : 'DEFINIR E ENTRAR', style: const TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                  if (_temSenha) ...[
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: _esqueciSenha,
+                      child: const Text('Esqueci minha senha', style: TextStyle(fontSize: 13, color: Colors.white70)),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _login,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black, minimumSize: const Size(200, 50)),
-              child: const Text('ENTRAR', style: TextStyle(fontWeight: FontWeight.w900)),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  void _login() {
-    if (_senhaController.text == 'admin123') {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TelaAdmin()));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha incorreta')));
+  void _esqueciSenha() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaRecuperarSenha()));
+  }
+
+  Future<void> _entrar() async {
+    if (!_temSenha) {
+      final senha = _senhaController.text;
+      final confirmar = _confirmarController.text;
+      if (senha.isEmpty) {
+        _mostrarErro('Digite uma senha.');
+        return;
+      }
+      if (senha != confirmar) {
+        _mostrarErro('As senhas não coincidem.');
+        return;
+      }
+      final pergunta = _perguntaSelecionada == AdminAuthService.opcaoPersonalizada
+          ? _perguntaCustomController.text.trim()
+          : _perguntaSelecionada;
+      if (pergunta == null || pergunta.isEmpty) {
+        _mostrarErro('Escolha uma pergunta de segurança.');
+        return;
+      }
+      final resposta = _respostaController.text.trim();
+      if (resposta.isEmpty) {
+        _mostrarErro('Digite a resposta da pergunta de segurança.');
+        return;
+      }
+      await AdminAuthService.setSenha(senha);
+      await AdminAuthService.setPerguntaSeguranca(pergunta, resposta);
+      _navegar();
+      return;
     }
+    final ok = await AdminAuthService.validarSenha(_senhaController.text);
+    if (ok) {
+      _navegar();
+    } else {
+      _mostrarErro('Senha incorreta');
+    }
+  }
+
+  void _navegar() {
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const TelaAdmin()));
+  }
+
+  void _mostrarErro(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 }
 
@@ -99,12 +218,38 @@ class _TelaAdminState extends State<TelaAdmin> {
   // Senha QGP
   String? _qpgSenha;
   String? _ultimoRelatorioHtml;
+  // Ajuda
+  String _ajudaHtml = '';
+  // Configurações
+  final _senhaAtualController = TextEditingController();
+  final _novaSenhaController = TextEditingController();
+  final _confirmarNovaController = TextEditingController();
+  // Configurações - pergunta de segurança
+  final _segurancaSenhaController = TextEditingController();
+  final _segurancaRespostaController = TextEditingController();
+  final _segurancaPerguntaCustomController = TextEditingController();
+  String? _segurancaPerguntaSelecionada;
 
   @override
   void initState() {
     super.initState();
     _cands = DatabaseService.getCandidatos();
     _verificarEnvioAutomatico();
+    _carregarAjuda();
+  }
+
+  Future<void> _carregarAjuda() async {
+    String html;
+    try {
+      html = await rootBundle.loadString('assets/ajuda/guia_uso.html');
+    } catch (_) {
+      html = '<html><body><p>Guia de uso indisponível.</p></body></html>';
+    }
+    if (mounted) {
+      setState(() => _ajudaHtml = html);
+    } else {
+      _ajudaHtml = html;
+    }
   }
 
   @override
@@ -115,13 +260,19 @@ class _TelaAdminState extends State<TelaAdmin> {
     _partidoController.dispose();
     _opiniaoNomeController.dispose();
     _opiniaoCpfController.dispose();
+    _senhaAtualController.dispose();
+    _novaSenhaController.dispose();
+    _confirmarNovaController.dispose();
+    _segurancaSenhaController.dispose();
+    _segurancaRespostaController.dispose();
+    _segurancaPerguntaCustomController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('PAINEL DE GESTÃO', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -137,10 +288,12 @@ class _TelaAdminState extends State<TelaAdmin> {
               Tab(text: 'Filtros'),
               Tab(text: 'Candidatos'),
               Tab(text: 'QGP'),
+              Tab(text: 'Configurações'),
+              Tab(text: 'Ajuda'),
             ],
           ),
         ),
-        body: TabBarView(children: [_tabFiltros(), _tabCandidatos(), _tabQGP()]),
+        body: TabBarView(children: [_tabFiltros(), _tabCandidatos(), _tabQGP(), _tabConfig(), _tabAjuda()]),
       ),
     );
   }
@@ -618,6 +771,173 @@ class _TelaAdminState extends State<TelaAdmin> {
         );
       }
     }
+  }
+
+  Widget _tabConfig() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Configurações', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.amber)),
+          const SizedBox(height: 20),
+          const Text('Trocar senha do administrador', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _senhaAtualController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Senha atual', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _novaSenhaController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Nova senha', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _confirmarNovaController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Confirmar nova senha', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _trocarSenha,
+            icon: const Icon(Icons.lock),
+            label: const Text('SALVAR NOVA SENHA', style: TextStyle(fontWeight: FontWeight.w900)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF008F39), minimumSize: const Size.fromHeight(50)),
+          ),
+          const SizedBox(height: 32),
+          const Divider(color: Colors.white24),
+          const SizedBox(height: 16),
+          const Text('Pergunta de segurança', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          const Text('Será usada para recuperar a senha caso você a esqueça.',
+              style: TextStyle(fontSize: 13, color: Colors.white54)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _segurancaSenhaController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Senha atual (para confirmar)', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: _segurancaPerguntaSelecionada,
+            isExpanded: true,
+            hint: const Text('Escolha a nova pergunta'),
+            items: [
+              ...AdminAuthService.perguntasPadrao
+                  .map((p) => DropdownMenuItem(value: p, child: Text(p, overflow: TextOverflow.ellipsis))),
+              const DropdownMenuItem(value: AdminAuthService.opcaoPersonalizada, child: Text('Outra (digitar)')),
+            ],
+            onChanged: (v) => setState(() => _segurancaPerguntaSelecionada = v),
+          ),
+          if (_segurancaPerguntaSelecionada == AdminAuthService.opcaoPersonalizada) ...[
+            const SizedBox(height: 10),
+            TextField(
+              controller: _segurancaPerguntaCustomController,
+              decoration: const InputDecoration(labelText: 'Digite a pergunta', border: OutlineInputBorder()),
+            ),
+          ],
+          const SizedBox(height: 10),
+          TextField(
+            controller: _segurancaRespostaController,
+            decoration: const InputDecoration(labelText: 'Nova resposta', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _trocarPerguntaSeguranca,
+            icon: const Icon(Icons.shield),
+            label: const Text('SALVAR PERGUNTA DE SEGURANÇA', style: TextStyle(fontWeight: FontWeight.w900)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A2BE2), minimumSize: const Size.fromHeight(50)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _trocarPerguntaSeguranca() async {
+    if (!await AdminAuthService.validarSenha(_segurancaSenhaController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha atual incorreta')));
+      return;
+    }
+    final pergunta = _segurancaPerguntaSelecionada == AdminAuthService.opcaoPersonalizada
+        ? _segurancaPerguntaCustomController.text.trim()
+        : _segurancaPerguntaSelecionada;
+    if (pergunta == null || pergunta.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escolha uma pergunta de segurança.')));
+      return;
+    }
+    final resposta = _segurancaRespostaController.text.trim();
+    if (resposta.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Digite a nova resposta.')));
+      return;
+    }
+    await AdminAuthService.setPerguntaSeguranca(pergunta, resposta);
+    _segurancaSenhaController.clear();
+    _segurancaRespostaController.clear();
+    _segurancaPerguntaCustomController.clear();
+    _segurancaPerguntaSelecionada = null;
+    if (mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pergunta de segurança atualizada com sucesso!'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
+  Future<void> _trocarSenha() async {
+    final atual = _senhaAtualController.text;
+    final nova = _novaSenhaController.text;
+    final confirmar = _confirmarNovaController.text;
+
+    if (!await AdminAuthService.validarSenha(atual)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha atual incorreta')));
+      return;
+    }
+    if (nova.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Digite a nova senha.')));
+      return;
+    }
+    if (nova != confirmar) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('As novas senhas não coincidem.')));
+      return;
+    }
+    await AdminAuthService.setSenha(nova);
+    _senhaAtualController.clear();
+    _novaSenhaController.clear();
+    _confirmarNovaController.clear();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Colors.green));
+    }
+  }
+
+  Widget _tabAjuda() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Guia de Uso', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 16),
+          if (_ajudaHtml.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade900,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SelectableText(
+                _ajudaHtml.replaceAll(RegExp(r'<[^>]*>'), '\n'),
+                style: const TextStyle(fontSize: 13, color: Colors.white70, height: 1.5),
+              ),
+            )
+          else
+            const CircularProgressIndicator(),
+        ],
+      ),
+    );
   }
 
   // =========================

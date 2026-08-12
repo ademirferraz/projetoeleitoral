@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'tela_cadastro.dart';
 import 'tela_admin.dart';
 import 'tela_pesquisador.dart';
+import 'tela_ajuda.dart';
 
 class TelaLogin extends StatelessWidget {
   const TelaLogin({super.key});
@@ -39,30 +40,11 @@ class TelaLogin extends StatelessWidget {
               style: TextStyle(fontSize: 18, color: Colors.white70),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
-                  Card(
-                    color: Colors.white,
-                    elevation: 6,
-                    child: InkWell(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Tela1Cadastro())),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(25),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.person, color: Colors.deepPurple, size: 30),
-                            SizedBox(width: 20),
-                            Text("Eleitor", style: TextStyle(fontSize: 24, color: Colors.black87, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                   Card(
                     color: Colors.white,
                     elevation: 6,
@@ -95,6 +77,45 @@ class TelaLogin extends StatelessWidget {
                             Icon(Icons.search, color: Colors.deepPurple, size: 30),
                             SizedBox(width: 20),
                             Text("Pesquisador", style: TextStyle(fontSize: 24, color: Colors.black87, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Card(
+                    color: Colors.white,
+                    elevation: 6,
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const Tela1Cadastro())),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(25),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.person_add, color: Colors.deepPurple, size: 30),
+                            SizedBox(width: 20),
+                            Text("Cadastre-se", style: TextStyle(fontSize: 24, color: Colors.black87, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Card(
+                    color: Colors.white,
+                    elevation: 6,
+                    child: InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TelaAjuda())),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.help_outline, color: Colors.deepPurple, size: 26),
+                            SizedBox(width: 12),
+                            Text("Como usar o sistema", style: TextStyle(fontSize: 18, color: Colors.black87, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),

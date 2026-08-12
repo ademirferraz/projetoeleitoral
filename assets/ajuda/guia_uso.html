@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guia Oficial de Uso</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: Arial, sans-serif; background: #121212; color: #e0e0e0; padding: 20px; }
+.container { max-width: 800px; margin: 0 auto; }
+h1 { color: #ffc107; font-size: 22px; text-align: center; margin-bottom: 16px; }
+h2 { color: #00bcd4; font-size: 16px; margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #333; }
+h3 { color: #ffc107; font-size: 14px; margin: 12px 0 4px; }
+p { margin-bottom: 8px; line-height: 1.5; font-size: 13px; }
+ul { margin: 4px 0 12px 20px; }
+li { margin-bottom: 4px; font-size: 13px; line-height: 1.4; }
+code { background: #2c2c2c; color: #ffc107; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+.note { background: #1e3a3a; border-left: 4px solid #00bcd4; padding: 10px; border-radius: 4px; margin: 12px 0; font-size: 13px; }
+.warning { background: #3a1e1e; border-left: 4px solid #f44336; padding: 10px; border-radius: 4px; margin: 12px 0; font-size: 13px; }
+.tip { background: #1e3a1e; border-left: 4px solid #4caf50; padding: 10px; border-radius: 4px; margin: 12px 0; font-size: 13px; }
+.footer { text-align: center; color: #555; font-size: 11px; margin-top: 24px; padding-top: 12px; border-top: 1px solid #333; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Guia Oficial de Uso<br>Ferramenta de Campanha Eleitoral</h1>
+
+<div class="note"><strong>Nota de Responsabilidade:</strong> Este aplicativo atua em conformidade com as diretrizes do TSE (Tribunal Superior Eleitoral). O uso e a gestão dos dados são de responsabilidade exclusiva do adquirente (usuário), devendo este respeitar rigorosamente a LGPD (Lei Geral de Proteção de Dados).</div>
+
+<h2>Passo 1: Acesso e Configuração Inicial</h2>
+<p>Ao abrir o app, você verá três perfis: <strong>Eleitor</strong>, <strong>Administrador (Admin)</strong> e <strong>Pesquisador</strong>.</p>
+<ul>
+<li><strong>Acesso Admin:</strong> O primeiro passo deve ser sempre pelo perfil Admin.</li>
+<li><strong>Compra na Google Play:</strong> Adquira o Acesso Vitalício diretamente na Google Play. O pagamento é processado pela própria loja.</li>
+<li><strong>Navegação:</strong> Uma vez logado, você terá acesso às abas superiores: Filtro, Candidatos, QGP e Testes.</li>
+</ul>
+
+<h2>Passo 2: Configuração do Cenário (Aba FILTRO)</h2>
+<p>Antes de cadastrar candidatos, defina a região de atuação:</p>
+<ul>
+<li><strong>Estado:</strong> Clique na seta do campo "Estado" e selecione a UF desejada.</li>
+<li><strong>Cidade:</strong> Digite o nome da cidade para campanhas municipais.</li>
+</ul>
+<div class="note"><strong>Nota:</strong> Para análises de âmbito Estadual (Senadores, Deputados Estaduais e Federais), deixe o campo da cidade em branco.</div>
+<ul>
+<li><strong>Relatórios:</strong> As opções "Ver Resultados" e "Abrir QGP" só exibirão dados após a coleta de votos ou pesquisas.</li>
+</ul>
+
+<h2>Passo 3: Cadastro de Candidatos (Aba CANDIDATOS)</h2>
+<p>O sucesso da ferramenta depende da organização das fotos. O sistema utiliza leitura inteligente de nomes de arquivos.</p>
+<ul>
+<li><strong>Formatação da Foto:</strong> A imagem do candidato deve ser salva no padrão:<br>
+<code>Nome_Numero_Sigla_Cargo.png</code><br>
+Exemplo: <code>Ademir_12345_PPPP_Deputado.png</code></li>
+<li><strong>Importação:</strong> Clique em Adicionar Candidatos, selecione as fotos e clique em CADASTRAR.</li>
+<li><strong>Limite:</strong> O sistema permite até 6 candidatos por cargo.</li>
+</ul>
+<div class="warning"><strong>Atenção:</strong> O app lê os dados do arquivo da imagem. Informações escritas na "camisa" do candidato na foto não são extraídas automaticamente.</div>
+
+<h2>Passo 4: Pesquisa de Campo (Aba QGP)</h2>
+<p>Ferramenta voltada para o Pesquisador de Campo.</p>
+<ul>
+<li><strong>Coleta de Dados:</strong> Campos para Nome e CPF (preenchimento não obrigatório, respeitando a privacidade).</li>
+<li><strong>Fluxo de Intenção:</strong> Apresente o candidato e registre a reação:<br>
+Clique na Foto → Selecione: [Interessado], [Não Interessado] ou [Outros] → Clique em GRAVAR.</li>
+<li><strong>Relatório de Desempenho:</strong> Ao clicar em Salvar Relatório, o app gera um documento com o "termômetro" de aceitação de cada candidato.</li>
+</ul>
+<div class="tip"><strong>Dica de Segurança:</strong> Só forneça a senha de pesquisador a pessoas de extrema confiança, pois este relatório revela a força real da sua estratégia.</div>
+
+<h2>Passo 5: Simulações e Testes (Aba TESTES)</h2>
+<p>Área exclusiva para o Administrador validar o funcionamento do app.</p>
+<ul>
+<li><strong>Injeção de Votos:</strong> Simule cenários eleitorais injetando votos aleatórios (padrão 30) ou manuais para candidatos A, B ou C.</li>
+<li><strong>Visualização:</strong> Resultados conferidos imediatamente nos gráficos da aba ou em "Ver Resultados" no Filtro.</li>
+<li><strong>Botão Limpar Tudo:</strong> <strong>CUIDADO!</strong> Apaga permanentemente todos os dados. Use apenas para reiniciar o sistema antes da campanha real.</li>
+</ul>
+
+<h2>Passo 6: O Fluxo do Eleitor</h2>
+<p>Quando o cidadão utilizar o app para votar:</p>
+<ol>
+<li>Ele realiza o Cadastro.</li>
+<li>O sistema impõe as Regras Eleitorais:</li>
+<ul>
+<li>Não é permitido votar em dois prefeitos.</li>
+<li>Não é permitido votar em candidatos de estados diferentes ao do eleitor (exceto presidente).</li>
+<li>Eleitores com menos de 16 anos não terão o voto acatado.</li>
+<li>A mesma pessoa não pode votar mais de uma vez.</li>
+<li>Não pode votar em dois candidatos estaduais nem em dois federais.</li>
+</ul>
+</ol>
+
+<div class="footer">
+Professor Dr. Ademir Ferraz, aposentado na condição de titular por defesa de tese.<br>
+Mestrado e doutorado em Matemática<br>
+Pós-doutorado em Ensino de Matemática a Distância<br>
+Especialista em Estatística e Computação (linha de código)
+</div>
+
+</div>
+</body>
+</html>
