@@ -31,8 +31,8 @@ android {
         applicationId = "br.com.mcsystem.app"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.9"
+        versionCode = 19
+        versionName = "1.7"
     }
 
     signingConfigs {
