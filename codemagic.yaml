@@ -5,9 +5,6 @@ workflows:
     integrations:
       app_store_connect: Projeto Eleitoral
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.eleitoral.projetoEleitoral
       flutter: stable
       xcode: latest
       cocoapods: default
