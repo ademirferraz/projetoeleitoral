@@ -1,7 +1,7 @@
 name: projetoeleitoral
 description: "Sistema de Consulta Eleitoral"
 publish_to: 'none'
-version: 1.8.0+20
+version: 1.8.1+22
 
 environment:
   sdk: ^3.10.4
@@ -34,7 +34,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/
-    - assets/ajuda/
+    - assets/ajuda/guia_uso.html
 
 flutter_icons:
   android: true

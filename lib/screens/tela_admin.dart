@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:file_picker/file_picker.dart';
 import 'package:projetoeleitoral/services/services.dart';
 import 'package:projetoeleitoral/services/admin_auth_service.dart';
@@ -218,8 +217,6 @@ class _TelaAdminState extends State<TelaAdmin> {
   // Senha QGP
   String? _qpgSenha;
   String? _ultimoRelatorioHtml;
-  // Ajuda
-  String _ajudaHtml = '';
   // Configurações
   final _senhaAtualController = TextEditingController();
   final _novaSenhaController = TextEditingController();
@@ -235,21 +232,6 @@ class _TelaAdminState extends State<TelaAdmin> {
     super.initState();
     _cands = DatabaseService.getCandidatos();
     _verificarEnvioAutomatico();
-    _carregarAjuda();
-  }
-
-  Future<void> _carregarAjuda() async {
-    String html;
-    try {
-      html = await rootBundle.loadString('assets/ajuda/guia_uso.html');
-    } catch (_) {
-      html = '<html><body><p>Guia de uso indisponível.</p></body></html>';
-    }
-    if (mounted) {
-      setState(() => _ajudaHtml = html);
-    } else {
-      _ajudaHtml = html;
-    }
   }
 
   @override
@@ -272,7 +254,7 @@ class _TelaAdminState extends State<TelaAdmin> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 5,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('PAINEL DE GESTÃO', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -289,11 +271,10 @@ class _TelaAdminState extends State<TelaAdmin> {
               Tab(text: 'Candidatos'),
               Tab(text: 'QGP'),
               Tab(text: 'Configurações'),
-              Tab(text: 'Ajuda'),
             ],
           ),
         ),
-        body: TabBarView(children: [_tabFiltros(), _tabCandidatos(), _tabQGP(), _tabConfig(), _tabAjuda()]),
+        body: TabBarView(children: [_tabFiltros(), _tabCandidatos(), _tabQGP(), _tabConfig()]),
       ),
     );
   }
@@ -910,34 +891,6 @@ class _TelaAdminState extends State<TelaAdmin> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha alterada com sucesso!'), backgroundColor: Colors.green));
     }
-  }
-
-  Widget _tabAjuda() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Guia de Uso', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-          const SizedBox(height: 16),
-          if (_ajudaHtml.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade900,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: SelectableText(
-                _ajudaHtml.replaceAll(RegExp(r'<[^>]*>'), '\n'),
-                style: const TextStyle(fontSize: 13, color: Colors.white70, height: 1.5),
-              ),
-            )
-          else
-            const CircularProgressIndicator(),
-        ],
-      ),
-    );
   }
 
   // =========================
