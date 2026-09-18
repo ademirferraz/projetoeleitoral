@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import '../services/billing_service.dart';
@@ -110,7 +110,7 @@ class _TelaAtivacaoState extends State<TelaAtivacao> {
     }
   }
 
-  /// O Play devolve o título com o nome do app entre parênteses no fim.
+  /// A loja devolve o título com o nome do app entre parênteses no fim.
   String _tituloLimpo(ProductDetails p) {
     return p.title.replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), '').trim();
   }
@@ -140,10 +140,10 @@ class _TelaAtivacaoState extends State<TelaAtivacao> {
             child: Column(
               children: [
                 const SizedBox(height: 40),
-                const Icon(Icons.lock_outline, size: 80, color: Colors.amber),
+                const Icon(Icons.insights, size: 80, color: Colors.amber),
                 const SizedBox(height: 16),
                 const Text(
-                  'App Bloqueado',
+                  'Projeto Eleitoral',
                   style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -156,29 +156,6 @@ class _TelaAtivacaoState extends State<TelaAtivacao> {
                   style: TextStyle(fontSize: 15, color: Colors.grey[400]),
                 ),
                 const SizedBox(height: 28),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: FilledButton.icon(
-                    onPressed: _digitarCodigo,
-                    icon: const Icon(Icons.key, color: Colors.black87),
-                    label: const Text(
-                      'Tenho um código de acesso',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87),
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.amber.shade700,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
 
                 _beneficio(Icons.assessment, 'Relatórios completos com gráficos'),
                 _beneficio(Icons.people, 'Gestão de eleitores e candidatos'),
@@ -208,6 +185,15 @@ class _TelaAtivacaoState extends State<TelaAtivacao> {
                               TextStyle(fontSize: 14, color: Colors.grey[500]),
                         ),
                 ),
+
+                if (!kIsWeb && defaultTargetPlatform != TargetPlatform.iOS)
+                  TextButton(
+                    onPressed: _digitarCodigo,
+                    child: Text(
+                      'Tem um código de acesso? Toque aqui',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                    ),
+                  ),
 
                 const SizedBox(height: 32),
                 const Divider(color: Colors.white24),
@@ -318,7 +304,9 @@ class _TelaAtivacaoState extends State<TelaAtivacao> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Verifique sua conexão e a conta do Google Play,\ne tente novamente em instantes.',
+            !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
+                ? 'Verifique sua conexão e tente novamente em instantes.'
+                : 'Verifique sua conexão e a conta do Google Play,\ne tente novamente em instantes.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Colors.grey[400]),
           ),
