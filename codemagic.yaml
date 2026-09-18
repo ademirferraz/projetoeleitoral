@@ -2,14 +2,29 @@ workflows:
   flutter-build:
     name: Flutter iOS Build
     instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Projeto Eleitoral
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.eleitoral.projetoEleitoral
       flutter: stable
+      xcode: latest
+      cocoapods: default
     scripts:
       - name: Get Flutter packages
         script: |
           flutter pub get
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
       - name: Build iOS IPA
         script: |
-          flutter build ipa --release --no-codesign
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
