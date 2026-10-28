@@ -51,3 +51,6 @@ cloudflared.exe
 
 # Build delivery archive
 *.zip
+
+# Backups
+*.bak
