@@ -54,3 +54,12 @@ cloudflared.exe
 
 # Backups
 *.bak
+
+# Secrets
+key.properties
+*.keystore
+*.jks
+.env*
+*.p12
+*.pem
+
